@@ -62,7 +62,7 @@ def stix_domain(domain):
 def atlas():
     raw = yaml.safe_load(download(ATLAS_URL))
     if not isinstance(raw, dict) or "techniques" not in raw or "tactics" not in raw:
-        raise ValueError("ATLAS schema not recognized")
+        raise ValueError(f"ATLAS schema not recognized; root type={type(raw).__name__}, keys={list(raw)[:25] if isinstance(raw, dict) else repr(raw)[:300]}")
     entries = {}
     sections = ("tactics", "techniques", "mitigations", "case-studies", "software", "entities", "assets")
     for section in sections:

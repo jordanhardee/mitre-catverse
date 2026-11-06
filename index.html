@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>MITRE CATVERSE — ATT&CK + ATLAS</title>
+<link rel="stylesheet" href="./style.css">
+<script src="./app.js" defer></script>
+</head>
+<body>
+<div class="stars" aria-hidden="true"></div>
+<div id="cats" aria-hidden="true"></div>
+<header class="top">
+  <div class="brand"><span class="brand-cat" aria-hidden="true">🐈‍⬛</span><div><strong>MITRE CATVERSE</strong><small>the threat matrix has escaped containment</small></div></div>
+  <div class="controls"><button id="chaos" type="button" aria-pressed="true">✨ Chaos: ON</button><button id="meow" type="button">🐱 Summon cat</button><a class="top-link" href="https://jordanhardee.com/">↩ XP Desktop</a></div>
+</header>
+<main>
+<section class="hero">
+  <div class="eyebrow">INDEPENDENT THEMED KNOWLEDGE BASE VIEWER • NOT AFFILIATED WITH MITRE</div>
+  <h1>TACTICS, TECHNIQUES <em>& TUNA</em></h1>
+  <p>Real adversary knowledge. Unreasonable amounts of cat energy. Everything searchable; datasets hosted locally.</p>
+  <div class="tabs" role="tablist" aria-label="Knowledge base">
+    <button role="tab" aria-selected="true" data-dataset="attack-enterprise">🖥️ ATT&CK Enterprise</button>
+    <button role="tab" aria-selected="false" data-dataset="attack-mobile">📱 Mobile</button>
+    <button role="tab" aria-selected="false" data-dataset="attack-ics">🏭 ICS</button>
+    <button role="tab" aria-selected="false" data-dataset="atlas">🤖 ATLAS</button>
+  </div>
+</section>
+<section class="workspace" aria-label="Knowledge browser">
+  <aside class="filters">
+    <label for="search">SEARCH THE ABYSS</label>
+    <input id="search" type="search" autocomplete="off" placeholder="T1059, prompt injection, phishing…">
+    <label for="kind">OBJECT TYPE</label>
+    <select id="kind"><option value="">All object types</option></select>
+    <label for="tactic">TACTIC</label>
+    <select id="tactic"><option value="">All tactics</option></select>
+    <button id="matrix-toggle" type="button">▦ Matrix view</button>
+    <button id="list-toggle" type="button">☷ List view</button>
+    <div class="status" id="status" role="status">Loading local dataset…</div>
+    <div class="smallprint">No API keys. No telemetry. No remote runtime data requests. <a href="https://github.com/jordanhardee/mitre-catverse">Source code ↗</a></div>
+  </aside>
+  <div class="results-area">
+    <div class="results-head"><h2 id="section-title">ATT&CK Enterprise</h2><span id="count">—</span></div>
+    <div id="results" class="results" aria-live="polite"></div>
+    <div id="pagination" class="pagination"></div>
+  </div>
+</section>
+</main>
+<dialog id="detail"><button class="close" id="close-detail" aria-label="Close details">✕</button><div id="detail-content"></div></dialog>
+<footer>Data © The MITRE Corporation and respective contributors • <a href="https://attack.mitre.org/resources/terms-of-use/">ATT&CK terms</a> • <a href="https://atlas.mitre.org/">ATLAS</a> • Independent viewer, not endorsed by MITRE • <span id="updated">Data version: pending</span></footer>
+</body>
+</html>

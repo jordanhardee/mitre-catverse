@@ -93,4 +93,5 @@ $("list-toggle").classList.add("active");
 $("chaos").onclick=()=>setChaos(!state.chaos);
 $("meow").onclick=()=>spawnCat();
 $("close-detail").onclick=()=>$("detail").close();
-setChaos(state.chaos);loadDataset(state.dataset);
+const requestedDataset=new URLSearchParams(location.search).get("dataset");
+setChaos(state.chaos);loadDataset(Object.hasOwn(datasets,requestedDataset)?requestedDataset:state.dataset);

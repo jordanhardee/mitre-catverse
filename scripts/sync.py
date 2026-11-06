@@ -82,21 +82,32 @@ def atlas():
                 "parent": "", "relations": [], "platforms": item.get("platforms") or [],
                 "maturity": item.get("maturity") or ""
             }
-    rels = raw.get("relationships") or {}
-    for rel in rels.values() if isinstance(rels, dict) else rels:
-        if not isinstance(rel, dict):
-            continue
-        src = rel.get("source") or rel.get("source-id") or rel.get("source_ref")
-        dst = rel.get("target") or rel.get("target-id") or rel.get("target_ref")
-        if isinstance(src, dict): src = src.get("id")
-        if isinstance(dst, dict): dst = dst.get("id")
-        kind = rel.get("relationship-type") or rel.get("type") or rel.get("relationship") or "related-to"
+    # ATLAS v6 nests relationships by source ID and relationship type.
+    # Flatten those groups without treating wrapper dictionaries as edges.
+    def iter_edges(node):
+        if isinstance(node, list):
+            for child in node:
+                yield from iter_edges(child)
+        elif isinstance(node, dict):
+            if "source" in node and "target" in node:
+                yield node
+            else:
+                for child in node.values():
+                    yield from iter_edges(child)
+
+    edges = 0
+    for rel in iter_edges(raw.get("relationships") or {}):
+        src, dst = rel.get("source"), rel.get("target")
+        kind = rel.get("relationship-type") or "related-to"
         if src in entries and dst in entries:
             entries[src]["relations"].append({"type": str(kind), "id": dst, "name": entries[dst]["name"]})
-            if kind in ("achieves", "uses") and entries[dst]["type"] == "tactic":
+            if kind == "achieves" and entries[dst]["type"] == "tactic":
                 entries[src]["tactics"].append(dst)
             if kind == "specializes":
                 entries[src]["parent"] = dst
+            edges += 1
+    if edges < 100:
+        raise ValueError(f"ATLAS relationships unexpectedly low: {edges}")
     if len(entries) < 100:
         raise ValueError(f"ATLAS object count too low: {len(entries)}")
     save("atlas", {"source": ATLAS_URL, "version": raw.get("collection", {}).get("version", ""), "objects": list(entries.values())})

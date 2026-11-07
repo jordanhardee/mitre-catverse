@@ -34,6 +34,7 @@
     <select id="kind"><option value="">All object types</option></select>
     <label for="tactic">TACTIC</label>
     <select id="tactic"><option value="">All tactics</option></select>
+    <div class="layer-tools"><strong>🗺️ THREAT MAPPING</strong><label for="layer-file">Import Navigator JSON</label><input id="layer-file" type="file" accept=".json,application/json"><button id="layer-export" type="button">💾 Export layer JSON</button><button id="layer-clear" type="button">🧹 Clear mapping</button><div id="layer-status" class="status" role="status">No layer loaded. Click any technique to map it.</div></div>
     <button id="matrix-toggle" type="button">▦ Matrix view</button>
     <button id="list-toggle" type="button">☷ List view</button>
     <div class="status" id="status" role="status">Loading local dataset…</div>
@@ -46,7 +47,7 @@
   </div>
 </section>
 </main>
-<dialog id="detail"><button class="close" id="close-detail" aria-label="Close details">✕</button><div id="detail-content"></div></dialog>
+<dialog id="detail"><button class="close" id="close-detail" aria-label="Close details">✕</button><div id="detail-content"></div><section id="mapping-editor" hidden><h3>🗺️ Navigator mapping</h3><label for="map-score">Score (0–100)</label><input id="map-score" type="number" min="0" max="100" step="1" value="50"><label for="map-color">Highlight color</label><input id="map-color" type="color" value="#ffcc00"><label for="map-comment">Comment</label><textarea id="map-comment" rows="3" maxlength="4000" placeholder="Threat evidence, detections, notes…"></textarea><div class="mapping-actions"><button id="map-save" type="button">🐈 Save mapping</button><button id="map-remove" type="button">Remove mapping</button></div></section></dialog>
 <footer>Data © The MITRE Corporation and respective contributors • <a href="https://attack.mitre.org/resources/terms-of-use/">ATT&CK terms</a> • <a href="https://atlas.mitre.org/">ATLAS</a> • Independent viewer, not endorsed by MITRE • <span id="updated">Data version: pending</span></footer>
 </body>
 </html>

@@ -11,7 +11,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 OUT = ROOT / "data"
 OUT.mkdir(exist_ok=True)
 ATTACK_BASE = "https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master"
-ATLAS_URL = "https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-latest.yaml"
+ATLAS_URL = "https://raw.githubusercontent.com/mitre-atlas/atlas-data/main/dist/v6/ATLAS-2026.10.yaml"
 
 def download(url):
     request = urllib.request.Request(url, headers={"User-Agent": "mitre-catverse-sync/1.0"})

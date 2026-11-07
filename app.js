@@ -2,10 +2,15 @@
 const $ = (id) => document.getElementById(id);
 const datasets = {"attack-enterprise":"ATT&CK Enterprise","attack-mobile":"ATT&CK Mobile","attack-ics":"ATT&CK ICS","atlas":"MITRE ATLAS"};
 const state = { dataset:"attack-enterprise", objects:[], query:"", kind:"", tactic:"", page:0, mode:"list", chaos:!window.matchMedia("(prefers-reduced-motion: reduce)").matches };
-let requestId=0, catTimer=null;
+let requestId=0, catTimer=null, selectedTechnique=null;
+const layers={};
+const domains={"attack-enterprise":"enterprise-attack","attack-mobile":"mobile-attack","attack-ics":"ics-attack"};
+function layer(){return layers[state.dataset]||(layers[state.dataset]={name:"Catverse threat map",versions:{attack:"20",navigator:"5.1.0",layer:"4.5"},techniques:[]});}
+function mapping(id){return layer().techniques.find(t=>t.techniqueID===id);}
+function layerStatus(){ $("layer-status").textContent=layer().techniques.length+" mapped techniques"; }
 const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const short = (text,n=230) => String(text||"").slice(0,n);
-const card = (item) => `<button class="item" type="button" data-id="${escapeHtml(item.id)}"><span class="id">${escapeHtml(item.id)}</span><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(short(item.description))}</p><span class="tag">${escapeHtml(item.type)}</span></button>`;
+const card = (item) => `<button class="item${mapping(item.id)?" mapped":""}" type="button" data-id="${escapeHtml(item.id)}" style="--map-color:${escapeHtml(mapping(item.id)?.color||"#ffcc00")}">${mapping(item.id)?"🗺️ "+escapeHtml(mapping(item.id).score??0)+" • ":""}<span class="id">${escapeHtml(item.id)}</span><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(short(item.description))}</p><span class="tag">${escapeHtml(item.type)}</span></button>`;
 function setChaos(enabled) {
   state.chaos=enabled;document.body.classList.toggle("quiet",!enabled);
   $("chaos").textContent=enabled?"✨ Chaos: ON":"😴 Chaos: OFF";$("chaos").setAttribute("aria-pressed",String(enabled));
@@ -23,7 +28,7 @@ function populate(select, values, label) {
   for(const value of values.sort((a,b)=>a.localeCompare(b)))select.add(new Option(value,value));
 }
 async function loadDataset(name) {
-  state.dataset=name;state.page=0;state.kind="";state.tactic="";state.objects=[];
+  state.dataset=name;layerStatus();state.page=0;state.kind="";state.tactic="";state.objects=[];
   for(const tab of document.querySelectorAll("[data-dataset]"))tab.setAttribute("aria-selected",String(tab.dataset.dataset===name));
   $("section-title").textContent=datasets[name];$("results").replaceChildren();$("status").textContent="Loading local "+name+" snapshot…";
   const current=++requestId;
@@ -71,6 +76,9 @@ function render(){
 }
 function showDetail(id){
   const o=state.objects.find(item=>item.id===id);if(!o)return;
+  selectedTechnique=(o.type==="attack-pattern"&&state.dataset!=="atlas")?o.id:null;
+  $("mapping-editor").hidden=!selectedTechnique;
+  if(selectedTechnique){const m=mapping(o.id);$("map-score").value=m?.score??50;$("map-color").value=/^#[0-9a-fA-F]{6}$/.test(m?.color||"")?m.color:"#ffcc00";$("map-comment").value=m?.comment||"";}
   const d=$("detail-content");d.replaceChildren();
   const h=document.createElement("h2");h.textContent=o.name;d.append(h);
   const idp=document.createElement("strong");idp.textContent=o.id+" • "+o.type;d.append(idp);
@@ -93,5 +101,52 @@ $("list-toggle").classList.add("active");
 $("chaos").onclick=()=>setChaos(!state.chaos);
 $("meow").onclick=()=>spawnCat();
 $("close-detail").onclick=()=>$("detail").close();
+
+$("layer-file").addEventListener("change",async e=>{
+  const file=e.target.files?.[0];if(!file)return;
+  try{
+    if(!domains[state.dataset])throw Error("Navigator layers support ATT&CK, not ATLAS.");
+    if(file.size>5*1024*1024)throw Error("File exceeds 5 MB.");
+    const raw=JSON.parse(await file.text());
+    if(!raw||!Array.isArray(raw.techniques))throw Error("Expected a Navigator layer JSON with a techniques array.");
+    if(raw.domain&&raw.domain!==domains[state.dataset])throw Error("Layer domain is "+raw.domain+". Switch to the matching ATT&CK dataset.");
+    if(raw.techniques.length>15000)throw Error("Too many mapped techniques.");
+    const entries=new Map();
+    for(const t of raw.techniques){
+      if(!t||typeof t.techniqueID!=="string"||!/^T\d{4}(?:\.\d{3})?$/.test(t.techniqueID))throw Error("Invalid technique ID.");
+      if(t.score!==undefined&&(!Number.isFinite(Number(t.score))||Number(t.score)<0||Number(t.score)>100))throw Error("Invalid score for "+t.techniqueID);
+      if(t.color!==undefined&&!/^#[0-9a-fA-F]{6}$/.test(t.color))throw Error("Invalid color for "+t.techniqueID);
+      entries.set(t.techniqueID,{...t,score:t.score===undefined?undefined:Number(t.score)});
+    }
+    layers[state.dataset]={...raw,techniques:[...entries.values()]};
+    layerStatus();render();
+    const unknown=[...entries.keys()].filter(id=>!state.objects.some(o=>o.id===id)).length;
+    $("layer-status").textContent+=" • Imported"+(unknown?" • "+unknown+" IDs absent from snapshot":"");
+    if(raw.versions?.attack&&!String(raw.versions.attack).startsWith("20"))$("layer-status").textContent+=" • Version warning: layer ATT&CK "+raw.versions.attack;
+  }catch(err){$("layer-status").textContent="Import failed: "+err.message;}
+  e.target.value="";
+});
+$("layer-export").onclick=()=>{
+  if(!domains[state.dataset]){$("layer-status").textContent="Export supports ATT&CK only.";return;}
+  const data={...layer(),domain:domains[state.dataset],versions:{attack:"20",navigator:"5.1.0",layer:"4.5",...(layer().versions||{})}};
+  const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));
+  const a=document.createElement("a");a.href=url;a.download="catverse-"+state.dataset+"-layer.json";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+};
+$("layer-clear").onclick=()=>{if(!layer().techniques.length||confirm("Clear all mapped techniques?")){layer().techniques=[];layerStatus();render();}};
+$("map-save").onclick=()=>{
+  if(!selectedTechnique)return;
+  const score=Number($("map-score").value);
+  if(!Number.isFinite(score)||score<0||score>100){alert("Score must be 0–100.");return;}
+  const old=mapping(selectedTechnique)||{};
+  layer().techniques=layer().techniques.filter(t=>t.techniqueID!==selectedTechnique);
+  layer().techniques.push({...old,techniqueID:selectedTechnique,score,color:$("map-color").value,comment:$("map-comment").value,enabled:true});
+  layerStatus();render();$("detail").close();
+};
+$("map-remove").onclick=()=>{
+  if(!selectedTechnique)return;
+  layer().techniques=layer().techniques.filter(t=>t.techniqueID!==selectedTechnique);
+  layerStatus();render();$("detail").close();
+};
+
 const requestedDataset=new URLSearchParams(location.search).get("dataset");
 setChaos(state.chaos);loadDataset(Object.hasOwn(datasets,requestedDataset)?requestedDataset:state.dataset);
